@@ -1,0 +1,6 @@
+---
+host: "wyvra.net"
+port: 4444
+database: "wyvra"
+admin_users:
+    - citizen_z
