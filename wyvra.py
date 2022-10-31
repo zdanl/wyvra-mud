@@ -1,3 +1,6 @@
+#!/usr/bin/env python3.11
+# -* encoding: utf-8 -*-
+
 #  __      __
 # /  \    /  \ ___.__.___  _________ _____
 # \   \/\/   /<   |  |\  \/ /\_  __ \\__  \
@@ -19,6 +22,40 @@ import yaml, os
 
 print_lock = threading.Lock()
 db = None
+
+def wyvra_say_handler(c, text):
+    wyvra_log("debug", text)
+    for ip, conn in sessions.items():
+        conn.send(b"Says: " + bytes(text[1], "utf-8") + b"\n")
+
+def wyvra_logout_handler(c, text):
+    pass
+
+def wyvra_delete_handler(c, text):
+    pass
+
+wyvra_protocol = {
+    "say": wyvra_say_handler,
+    "exit": wyvra_logout_handler,
+    "quit": wyvra_logout_handler,
+    "q": wyvra_logout_handler,
+    "e": wyvra_logout_handler,
+    "delete": wyvra_delete_handler
+}
+
+sessions = {}
+
+def wyvra_command(c, command):
+    command = command.decode("utf-8")
+    command = command.split(" ")
+    cmd = command[0]
+    wyvra_log("info", "Command %s" %cmd)
+    handler = wyvra_protocol.get(cmd)
+    if handler:
+        handler(c, command)
+    else:
+        c.send(b"Invalid command.\n")
+        
 
 def wyvra_handle(c):
     wyvra_log("info", "Handling new connection")
@@ -50,11 +87,13 @@ def wyvra_handle(c):
         c.send(b"[%s] >> " %nickname)
         data = c.recv(4096)
         if not data:
-            print_lock.release()
+            #print_lock.release()
             break
         data = data[:-1]
+
         wyvra_log("info", "Received data: %s" %data)
         wyvra_log("info", "Got %d bytes" %(len(data)))
+        wyvra_command(c, data)
     wyvra_log("info", "Client disconnected")
     c.close()
 
@@ -74,7 +113,8 @@ def wyvra_init():
     net = networking(host, port)
     while True:
         c, addr = net.server.accept()
-        print_lock.acquire()
+        sessions[addr] = c
+        #print_lock.acquire()
         wyvra_log("info", "Connected to: %s : %d" %(addr[0], addr[1]))
         start_new_thread(wyvra_handle, (c,))
     net.server.close()
