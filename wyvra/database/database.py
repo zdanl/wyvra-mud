@@ -10,7 +10,7 @@ class database:
 
     def _hash_password(self, password):
         #password = password.encode()
-        hash_obj = hashlib.sha1(password)
+        hash_obj = hashlib.sha1(password.encode("utf-8"))
         hexa_value = hash_obj.hexdigest()
         return hexa_value
 
